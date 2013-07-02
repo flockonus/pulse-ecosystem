@@ -8,7 +8,7 @@ INFO     = 1
 # all creatures are defined and live in a reality
 class Reality
   constructor: (@basePulsesPerSecond) ->
-    loglevel = INFO
+    @loglevel = INFO
     @species = {}
     @creatures = []
     @tickInterval = @basePulsesPerSecond*1000
@@ -23,13 +23,13 @@ class Reality
     @tick()
   tick: () ->
     for c in @creatures
-      console.log 'pulse', c.species, c.attributes.energy
+      console.log ''
+      console.log 'pulse', c.species
       c.pulse()
     1
 
 # simplifying my planet as reality (as in, behavioural reality is what we percieve of it)
 planet = new Reality(1)
-
 
 
 class Species
@@ -42,7 +42,7 @@ class Species
       @reality = reality
       @attributes = {}
       @newEvents = []
-      # @priorities = new PriorityList(@)
+      @priorities = {}
       for k,v of @baseAttributes
         @attributes[k] = v
       @
@@ -54,6 +54,7 @@ class Species
     proto::biologicalRoutines = {}
     proto::actions = {}
     proto::priorityMap = {}
+    proto::tasksKnown = {}
 
     # simple inheritance! ?=D
     for k,v of Species.instance
@@ -72,6 +73,10 @@ class Species
 
     proto.definePriority = (label, fn) ->
       proto::priorityMap[label] = fn
+
+    # not satisfied with `cost` and `effectiveness` as numbers, they depend on far too many things to be simplified as that
+    proto.defineSolutionFor = (label, fn) ->
+      proto::tasksKnown[label] = fn
 
     proto
 
@@ -104,14 +109,14 @@ class Species
       @evaluatePriorities()
       # kinda like making a plan
       @addressPriorities()
-      # meaning of life?
+      # perform some action
       @takeAction()
 
     biologicalMaintenance: () ->
       # this line will fuckup
-      for name, routine of @biologicalRoutines
+      for name, fn of @biologicalRoutines
         @log INFO, "running #{name}"
-        routine.call @
+        fn.call @
       1
 
     # not everything need a name, it just happen that a lot of things have one
@@ -120,8 +125,7 @@ class Species
     setAttribute: (attr,value) ->
       @attributes[attr] = value
 
-    evaluatePriorities: () ->
-      evaluatePriorities
+
 
     log: (priority, message) ->
       if priority >= @reality.loglevel
@@ -134,20 +138,32 @@ class Species
       2
 
     evaluatePriorities: () ->
-      3
+      for label, fn of @priorityMap
+        value = fn.call @
+        @priorities[label] = value
+        @log INFO, "prioritizing '#{label}': #{value}"
 
     addressPriorities: () ->
-      4
+      ###
+        basically sort list of priorities
+        check what's not being addressed yet, or need to be re-addressed
+      ###
+      @addressedPriorities = []
+      # TODO quick sort
 
     takeAction: () ->
+      ###
+        finally perform some task, or a percentage of it
+      ###
       5
 
-
+TASKS = require './task'
 
 Dog = Species.register 'Dog', planet
 
 Dog.defineBaseAttributes {
-    energy: 50
+    calories: 50
+    barkEnergy: 50
     hungry: 50
     happiness: 50
     needToExercise: 10
@@ -156,17 +172,23 @@ Dog.defineBaseAttributes {
   }
 
 Dog.defineBiologicalRoutine 'methabolism', () ->
-  @attributes.energy -= @reality.perSecond(0.1)
+  @attributes.calories -= @reality.perSecond(0.1)
+
+Dog.defineBiologicalRoutine 'replenish bark', () ->
+  @attributes.barkEnergy += @reality.perSecond(1)
 
 Dog.defineAction 'ask for food', () ->
   @log CRITICAL, 'gimme food, yo!'
 
 Dog.definePriority 'hunger', () ->
-  (100 - @attributes.energy)*10
+  100 - @attributes.calories
+
+Dog.defineSolutionFor 'hunger', TASKS.TaskBitchToConsole
+
 
 toto = new Dog()
 
 planet.addCreature toto
-
 planet.run()
+
 
