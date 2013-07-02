@@ -8,4 +8,4 @@ If simplifications such as time and behaviours have worked well for physics and 
 
 Reality itself holds no bounds against visibility or bending, creatures are the limited parts
 
-Only up to one task can be finished per tick, so ticks should be at least frequent as the smallest task length
+Only up to one task can be finished per tick, so ticks should be at least frequent as the smallest task duration
